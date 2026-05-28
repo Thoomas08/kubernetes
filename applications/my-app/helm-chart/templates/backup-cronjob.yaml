@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "my-laravel-app.fullname" . }}-mysql-backup
+  labels:
+    {{- include "my-laravel-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "my-laravel-app.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          containers:
+          - name: mysql-backup
+            image: {{ .Values.backup.image }}
+            command:
+            - /bin/sh
+            - -c
+            - |
+              BACKUP_FILE="/backup/backup-$(date +%Y%m%d-%H%M%S).sql"
+              echo "Demarrage du backup vers ${BACKUP_FILE}..."
+              mysqldump \
+                -h {{ .Release.Name }}-mysql \
+                -u root \
+                -p"${DB_ROOT_PASSWORD}" \
+                "${DB_DATABASE}" > "${BACKUP_FILE}"
+              echo "Backup termine avec succes !"
+              ls -lh /backup/
+            env:
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "my-laravel-app.fullname" . }}-config
+                  key: DB_DATABASE
+            - name: DB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "my-laravel-app.fullname" . }}-secret
+                  key: DB_ROOT_PASSWORD
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "200m"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+          volumes:
+          - name: backup-storage
+            emptyDir: {}
+          restartPolicy: OnFailure

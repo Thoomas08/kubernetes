@@ -1,0 +1,21 @@
+# Valeurs Helm pour loki-stack
+# Usage : helm upgrade loki grafana/loki-stack \
+#           --namespace logging --values values-loki.yaml
+
+loki:
+  enabled: true
+  nodeSelector:
+    node-role: monitoring
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: local-path
+
+promtail:
+  enabled: true
+  # Promtail tourne sur TOUS les nodes (DaemonSet) pour collecter tous les logs
+  # Ne pas restreindre avec nodeSelector
+
+grafana:
+  # Grafana déployé via kube-prometheus-stack, pas ici
+  enabled: false

@@ -1,0 +1,41 @@
+# Valeurs Helm pour kube-prometheus-stack
+# Usage : helm upgrade monitoring monitoring --repo https://prometheus-community.github.io/helm-charts \
+#           --namespace monitoring --values values-prometheus.yaml
+
+grafana:
+  adminPassword: "admin"
+  service:
+    type: ClusterIP
+  # Mettre le monitoring sur le node dédié (après avoir labellisé le node)
+  nodeSelector:
+    node-role: monitoring
+
+prometheus:
+  prometheusSpec:
+    nodeSelector:
+      node-role: monitoring
+    retention: 15d
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+
+alertmanager:
+  alertmanagerSpec:
+    nodeSelector:
+      node-role: monitoring
+
+prometheusOperator:
+  nodeSelector:
+    node-role: monitoring
+
+nodeExporter:
+  # Le node exporter tourne sur TOUS les nodes (DaemonSet) - ne pas restreindre
+  enabled: true
+
+kubeStateMetrics:
+  nodeSelector:
+    node-role: monitoring

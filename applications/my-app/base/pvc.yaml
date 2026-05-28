@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  labels:
+    app.kubernetes.io/name: my-app
+    app.kubernetes.io/component: mysql
+    app.kubernetes.io/part-of: kubequest
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path

@@ -1,0 +1,20 @@
+Application {{ .Chart.Name }} deployee avec succes !
+
+=== ACCES A L'APPLICATION ===
+URL : http://{{ .Values.ingress.host }}
+
+=== VERIFICATIONS ===
+1. Voir les pods :
+   kubectl get pods -n {{ .Release.Namespace }}
+
+2. Voir les logs de l'app :
+   kubectl logs -l app.kubernetes.io/name={{ include "my-laravel-app.name" . }} -n {{ .Release.Namespace }}
+
+3. Tester l'application :
+   curl http://{{ .Values.ingress.host }}
+   curl http://{{ .Values.ingress.host }}/api/counter
+
+=== BACKUP MYSQL ===
+Le CronJob de backup tourne a : {{ .Values.backup.schedule }}
+Pour declencher un backup maintenant :
+  kubectl create job --from=cronjob/{{ include "my-laravel-app.fullname" . }}-mysql-backup manual-backup -n {{ .Release.Namespace }}

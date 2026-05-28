@@ -1,0 +1,19 @@
+# Python virtual env (local seulement)
+.venv/
+
+# PDF du sujet (inutile dans le repo)
+project.pdf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Helm
+*.tgz
+
+# Kustomize build output
+/build/
+
+# Secrets locaux (ne jamais committer)
+*.env
+.env

@@ -1,0 +1,48 @@
+# ============================================================
+# IMPORTANT : remplacer VOTRE_USERNAME_DOCKERHUB
+#             et VOTRE_IP_INGRESS_NODE par la vraie valeur
+# ============================================================
+
+replicaCount: 2
+
+image:
+  repository: VOTRE_USERNAME_DOCKERHUB/my-laravel-app
+  tag: "latest"
+  pullPolicy: Always
+
+app:
+  name: "MyApp"
+  # Clé Laravel (ne pas changer, générée par le projet)
+  key: "base64:DJYTvaRkEZ/YcQsX3TMpB0iCjgme2rhlIOus9A1hnj4="
+  env: "production"
+  debug: "false"
+  url: "http://my-app.3.252.136.48.nip.io"
+
+database:
+  name: "app_database"
+  username: "app_user"
+  password: "app_password"
+  rootPassword: "app_root_password"
+  storage: "5Gi"
+  storageClass: "local-path"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "my-app.3.252.136.48.nip.io"
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+backup:
+  schedule: "0 2 * * *"
+  image: "mysql:8.0"

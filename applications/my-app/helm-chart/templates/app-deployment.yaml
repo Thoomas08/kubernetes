@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "my-laravel-app.fullname" . }}
+  labels:
+    {{- include "my-laravel-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "my-laravel-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: app
+  template:
+    metadata:
+      labels:
+        {{- include "my-laravel-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: app
+    spec:
+      # ── Init containers ──────────────────────────────────────
+      initContainers:
+      - name: wait-for-db
+        image: mysql:8.0
+        command:
+        - sh
+        - -c
+        - |
+          echo "Attente que MySQL soit pret..."
+          until mysqladmin ping -h {{ .Release.Name }}-mysql -u root -p"${DB_ROOT_PASSWORD}" --silent; do
+            echo "MySQL pas encore pret, nouvelle tentative dans 3s..."
+            sleep 3
+          done
+          echo "MySQL est pret !"
+        env:
+        - name: DB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "my-laravel-app.fullname" . }}-secret
+              key: DB_ROOT_PASSWORD
+      - name: run-migrations
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["php", "artisan", "migrate", "--force"]
+        envFrom:
+        - configMapRef:
+            name: {{ include "my-laravel-app.fullname" . }}-config
+        - secretRef:
+            name: {{ include "my-laravel-app.fullname" . }}-secret
+      # ── Containers principaux ─────────────────────────────────
+      containers:
+      - name: app
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: {{ include "my-laravel-app.fullname" . }}-config
+        - secretRef:
+            name: {{ include "my-laravel-app.fullname" . }}-secret
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          failureThreshold: 3
+      # ── Anti-affinité : répartir les pods sur les nodes ───────
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - {{ include "my-laravel-app.name" . }}
+              topologyKey: kubernetes.io/hostname
